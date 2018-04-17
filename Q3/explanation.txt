@@ -1,0 +1,1 @@
+we may use log scale and square root scale when the data may increase exponentially and become sparser for larger values.

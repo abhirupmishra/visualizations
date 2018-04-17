@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Q5</title>
+	<style>
+
+        .axis {
+            font-size: 10px;
+        }
+        
+        .axis path,
+        .axis line {
+            fill: none;
+            display: none;
+        }
+        
+        .label {
+            font-size: 10px;
+        }
+
+        .axis path,
+  		.axis line{
+		    fill: none;
+		    stroke: black;
+  		}
+
+		.line{
+		    fill: none;
+		    stroke: blue;
+		    stroke-width: 2px;
+		}
+
+		.tick text{
+			font-size: 12px;
+		}
+
+		.tick line{
+		    opacity: 0.2;
+		}
+
+	</style>
+
+	<script src="../lib/d3.v3.min.js"></script>
+	<script type="text/javascript">
+		
+		var data = [
+			{franchise:'Harry Potter', revenue: {1:974, 2:878, 3:796, 4:896, 5:942, 6:935, 7:960, 8:1341 }},
+			{franchise:'Transformers', revenue: {1:708, 2:836, 3:1123, 4:1104, 5:603 }},
+			{franchise:'Mission Impossible', revenue: {1:457, 2:549, 3:397, 4:694, 5:700 }},
+			{franchise:'Fast and the Furious', revenue: {1:206, 2:236, 3:363, 4:363, 5:629, 6:789, 7:1516, 8:1237 }},
+			{franchise:'Hunger Games', revenue: {1:677, 2:864, 3:766, 4:650 }},
+			{franchise:'Pirates of the Caribbean', revenue: {1:634, 2:1066, 3:963, 4:1045, 5:794 }}
+		]
+
+	</script>
+</head>
+<body>
+	
+	<div style="width: 100%; overflow: hidden;">
+    	<div style="float: left;" id="barChartArea"></div>
+    	<div style="margin-left: 620px;" id="lineChartArea"></div>
+	</div>
+
+	<script type="text/javascript">
+		
+		function installmentDetails(data, franchise){
+			var revenueData = data.find(o => o.franchise == franchise)["revenue"]
+			
+			chartData = [];
+			Object.keys(revenueData).forEach(function(key) {
+  				x = key;
+  				y = revenueData[key];
+  				chartData.push({"x": x, "y": y});
+  			});
+			return chartData;
+		};
+
+		var barChartData = [];
+		
+		//preparing the data for the barchart
+		Object.keys(data).forEach(function(key) {
+  			var sum = 0;
+  			revenue = data[key].revenue;
+  			movie = data[key].franchise;
+  			Object.keys(revenue).forEach(function(revenueKey) {
+  				sum = sum + revenue[revenueKey];
+  			});
+
+  			barChartData.push({"name": movie, "value":sum});
+		});
+
+        //set up svg using margin conventions - we'll need plenty of room on the left for labels
+        var margin = {
+            top: 15,
+            right: 25,
+            bottom: 15,
+            left: 130
+        };
+
+        var width = 600 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+        var svg = d3
+	        	.select("#barChartArea")
+	        	.append("svg")
+	            .attr("width", width + margin.left + margin.right)
+	            .attr("height", height + margin.top + margin.bottom)
+	            .append("g")
+	            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var x = d3.scale
+	        	.linear()
+	            .range([0, width])
+	            .domain([0, d3.max(barChartData, function (d) { return d.value; })]);
+
+        var y = d3.scale
+	        	.ordinal()
+	            .rangeRoundBands([height, 0], 0.6)
+	            .domain(barChartData.map(function (d) { return d.name; }));
+
+        //make y axis to show bar names
+        var yAxis = d3.svg
+        		.axis()
+            	.scale(y)
+	            .orient("left");
+
+        var gy = svg
+        		.append("g")
+            	.attr("class", "y axis")
+            	.call(yAxis)
+
+        var bars = svg
+        		.selectAll(".bar")
+            	.data(barChartData)
+            	.enter()
+            	.append("g")
+
+        //append rects
+        bars
+        	.append("rect")
+            .attr("class", "bar")
+            .attr("y", function (d) { return y(d.name); })
+            .attr("height", "30px")
+            .attr("x", 0)
+            .style("fill", "green")
+            .attr("width", function (d) { return x(d.value); });
+
+        //add a value label to the right of each bar
+        bars.append("text")
+            .attr("class", "label")
+            //y position of the label is halfway down the bar
+            .attr("y", function (d) {return y(d.name) + y.rangeBand() / 2 + 4; })
+            
+            //x position is 3 pixels to the right of the bar
+            .attr("x", function (d) {
+            	return x(d.value) - 100; 
+            })
+            .style("fill","white")
+            .text(function (d) { return "$"+d.value; });
+
+        bars
+        	.on("mouseover", function(d){
+        		d3.select(this).select("rect").style("fill", "red");
+            	lineChartData = installmentDetails(data, d.name);
+            	createLineChart(lineChartData);
+            })
+	    	.on("mouseout", function(d){
+	    		d3.select(this).select("rect").style("fill", "green");
+	        	document.getElementById("lineChartArea").innerHTML = "";
+			});
+
+		
+		function createLineChart(dataset){
+			
+			var margin = {top: 50, right: 50, bottom: 20, left: 50},
+    			width = 400 - margin.left - margin.right,
+    			height = 300 - margin.top - margin.bottom;
+
+    		var xScale = d3.scale
+    					.linear()
+    					.domain([0, d3.max(dataset, function(d){ return d.x; })])
+    					.range([0, width]);
+
+    		var yScale = d3.scale
+    					.linear()
+					    .domain([0, d3.max(dataset, function(d){ return d.y; })])
+					    .range([height, 0]);
+
+			var xAxis = d3.svg
+						.axis()
+					    .scale(xScale)
+					    .orient("bottom");
+
+			var yAxis = d3.svg
+						.axis()
+					    .scale(yScale)
+					    .orient("left");
+
+			var line = d3.svg
+						.line()
+					    .x(function(d) { return xScale(d.x); })
+					    .y(function(d) { return yScale(d.y); });
+
+			var svg = d3
+						.select("#lineChartArea")
+						.append("svg")
+					    .attr("width", width + margin.left + margin.right)
+					    .attr("height", height + margin.top + margin.bottom)
+					  	.append("g")
+					    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			svg
+				.append("g")
+				.attr("class", "x axis")
+				.attr("transform", "translate(0," + height + ")")
+				.call(xAxis)
+				.append("text")
+				.attr("fill", "#000")
+				.text("Installment");
+
+			svg
+				.append("g")
+				.attr("class", "y axis")
+				.call(yAxis)
+				.append("text")
+				.attr("transform", "rotate(90)")
+				.attr("fill", "#000")
+				.text("Revenue");
+
+			svg
+				.append("path")
+				.data([dataset])
+				.attr("class", "line")
+				.attr("d", line);
+		};
+
+
+	</script>
+
+</body>
+</html>
